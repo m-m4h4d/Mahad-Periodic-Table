@@ -9,14 +9,6 @@ from tkinter.ttk import Entry
 import tkinter.messagebox as tmsg
 import random
 
-
-
-'''                              THIS  PROGRAM IS CREATED BY 
-                                       MUHAMMAD TAYYAB IFTIKHAR (00000406493)
-                                       MUHAMMAD MAHAD (00000408576) 
-                                       KHAWAJA HAMZA SIDDIQUI (00000409366)'''
-
-
 # STANDARD CMS ID LENGTH IS ELEVEN IN OUR PROJECT SUCH AS 00000000000
 
 # ALL THE FUNCTIONS ARE GIVEN BELOW
