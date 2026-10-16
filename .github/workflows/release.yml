@@ -1,0 +1,52 @@
+name: Desktop release
+
+# Push a tag such as v1.0.0 (or run this workflow by hand) to publish the
+# Tkinter desktop app as a GitHub release with a ready-to-run zip.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update (e.g. v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      WEB_URL: ${{ vars.WEB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build zip
+        run: python scripts/build_release.py "$TAG" --web-url "$WEB_URL"
+
+      - name: Smoke-test the packaged app
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq python3-tk xvfb >/dev/null
+          cd "$(mktemp -d)"
+          unzip -q "$GITHUB_WORKSPACE/release/Mahad-Periodic-Table-desktop.zip"
+          cd Mahad-Periodic-Table
+          # The app runs until its window is closed; it passes if it is still up after 5s.
+          timeout 5 xvfb-run -a /usr/bin/python3 launcher.py; test $? -eq 124
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset=release/Mahad-Periodic-Table-desktop.zip
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$asset" --clobber
+          else
+            gh release create "$TAG" "$asset" --target "$GITHUB_SHA" \
+              --title "MTH Periodic Table $TAG" --notes-file desktop/RELEASE_NOTES.md
+          fi
