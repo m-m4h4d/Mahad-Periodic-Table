@@ -1,0 +1,316 @@
+/* Windows Tk widget look for tk.js */
+
+html, body {
+  margin: 0;
+  background: #F0F0F0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.tk-window {
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.tk-root {
+  position: relative;
+  width: 1500px;
+  height: 1000px;
+  overflow: hidden;
+  background: #F0F0F0;
+  transform-origin: 0 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 9pt;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: auto;
+}
+
+.tk-root * {
+  box-sizing: content-box;
+}
+
+.tk-canvas,
+.tk-label,
+.tk-button,
+.tk-entry,
+.tk-listbox,
+.tk-scrollbar {
+  position: absolute;
+  margin: 0;
+}
+
+/* Canvas: 2px highlight ring in SystemButtonFace; children sit inside it. */
+.tk-canvas {
+  border: 2px solid #F0F0F0;
+  overflow: hidden;
+}
+
+.tk-canvas-items,
+.tk-canvas-items > div {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tk-canvas-items {
+  inset: 0;
+}
+
+/* Label: borderwidth 2 (flat), padx/pady 1, text centred. */
+.tk-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+  text-align: center;
+  overflow: hidden;
+}
+
+.tk-label img {
+  display: block;
+}
+
+/* Button: 1px highlight ring, 2px relief, padx/pady 1. */
+.tk-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #F0F0F0;
+  border-radius: 0;
+  padding: 3px;
+  white-space: pre;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: var(--raised);
+  cursor: default;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  font-synthesis: none;
+}
+
+.tk-button:active {
+  box-shadow: var(--sunken);
+}
+
+.tk-button:active > span {
+  transform: translate(1px, 1px);
+}
+
+.tk-button:focus-visible > span {
+  outline: 1px dotted currentColor;
+  outline-offset: 0;
+}
+
+/* ttk.Entry, "vista" theme. */
+.tk-entry {
+  border: 1px solid #7A7A7A;
+  border-radius: 0;
+  padding: 1px 1px;
+  background: #FFFFFF;
+  color: #000000;
+  outline: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.tk-entry:hover {
+  border-color: #171717;
+}
+
+.tk-entry:focus {
+  border-color: #0078D7;
+}
+
+.tk-entry::selection {
+  background: #0078D7;
+  color: #FFFFFF;
+}
+
+/* Listbox: 1px highlight ring + 1px sunken border. */
+.tk-listbox {
+  border: 1px solid #F0F0F0;
+  box-shadow: inset 1px 1px 0 #A0A0A0, inset -1px -1px 0 #FFFFFF;
+  padding: 1px;
+  overflow: hidden;
+  outline: none;
+}
+
+.tk-row {
+  padding: 0 1px;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.tk-row.sel {
+  background: #0078D7;
+  color: #FFFFFF;
+}
+
+.tk-listbox:focus .tk-row.active {
+  text-decoration: underline;
+}
+
+/* Vertical scrollbar with no size given: just its two arrow buttons. */
+.tk-scrollbar {
+  width: 17px;
+  height: 34px;
+  background: #F0F0F0;
+}
+
+.tk-scrollbar .arrow {
+  position: relative;
+  width: 17px;
+  height: 17px;
+}
+
+.tk-scrollbar .arrow::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  width: 0;
+  height: 0;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+}
+
+.tk-scrollbar .up::after {
+  top: 6px;
+  border-bottom: 5px solid #606060;
+}
+
+.tk-scrollbar .down::after {
+  top: 6px;
+  border-top: 5px solid #606060;
+}
+
+.tk-scrollbar:not(.disabled) .arrow:hover {
+  background: #DADADA;
+}
+
+.tk-scrollbar:not(.disabled) .arrow:active {
+  background: #606060;
+}
+
+.tk-scrollbar:not(.disabled) .up:active::after {
+  border-bottom-color: #FFFFFF;
+}
+
+.tk-scrollbar:not(.disabled) .down:active::after {
+  border-top-color: #FFFFFF;
+}
+
+.tk-scrollbar.disabled .up::after {
+  border-bottom-color: #BFBFBF;
+}
+
+.tk-scrollbar.disabled .down::after {
+  border-top-color: #BFBFBF;
+}
+
+/* tkinter.messagebox, Windows 10 style. */
+.tk-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.tk-dialog {
+  min-width: 180px;
+  max-width: min(480px, 100%);
+  background: #FFFFFF;
+  border: 1px solid #8C8C8C;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32);
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 9pt;
+  color: #000000;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tk-dialog-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding-left: 10px;
+}
+
+.tk-dialog-close {
+  width: 46px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  font: 10pt "Segoe UI", system-ui, sans-serif;
+  color: #000000;
+}
+
+.tk-dialog-close:not(:disabled):hover {
+  background: #E81123;
+  color: #FFFFFF;
+}
+
+.tk-dialog-close:disabled {
+  color: #BFBFBF;
+}
+
+.tk-dialog-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 28px 26px 22px;
+}
+
+.tk-dialog-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+.tk-dialog-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tk-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 12px 10px;
+  background: #F0F0F0;
+}
+
+.tk-dialog-button {
+  min-width: 75px;
+  height: 23px;
+  padding: 0 8px;
+  background: #E1E1E1;
+  border: 1px solid #ADADAD;
+  border-radius: 0;
+  font: inherit;
+  color: #000000;
+  outline: none;
+}
+
+.tk-dialog-button:hover {
+  background: #E5F1FB;
+  border-color: #0078D7;
+}
+
+.tk-dialog-button:active {
+  background: #CCE4F7;
+  border-color: #005499;
+}
+
+.tk-dialog-button:focus {
+  border-color: #0078D7;
+  box-shadow: inset 0 0 0 1px #0078D7;
+}

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Double-click in Finder to start the MTH Periodic Table.
+cd "$(dirname "$0")" || exit 1
+exec python3 launcher.py
