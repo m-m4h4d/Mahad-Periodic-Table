@@ -21,9 +21,9 @@ jobs:
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
       WEB_URL: ${{ vars.WEB_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -37,7 +37,9 @@ jobs:
           unzip -q "$GITHUB_WORKSPACE/release/Mahad-Periodic-Table-desktop.zip"
           cd Mahad-Periodic-Table
           # The app runs until its window is closed; it passes if it is still up after 5s.
-          timeout 5 xvfb-run -a /usr/bin/python3 launcher.py; test $? -eq 124
+          status=0
+          timeout 5 xvfb-run -a /usr/bin/python3 launcher.py || status=$?
+          test "$status" -eq 124
 
       - name: Publish release
         env:
