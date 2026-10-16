@@ -141,6 +141,9 @@ export class Tk {
     stage.classList.add('tk-root');
   }
   title(t) { document.title = t; }
+  winfo_children() {
+    return [...this.inner.children].map((el) => el._tk).filter(Boolean);
+  }
   geometry(g) {
     const m = /^(\d+)x(\d+)/.exec(g);
     if (m) {
@@ -157,6 +160,7 @@ class Widget {
   constructor(master, opts, tag) {
     this.master = master || ROOT;
     this.el = document.createElement(tag);
+    this.el._tk = this;
     this.opts = {};
     this.configure(opts || {});
   }
@@ -165,12 +169,19 @@ class Widget {
     this.render();
   }
   render() {}
-  place({ x = 0, y = 0 } = {}) {
+  place({ x = 0, y = 0, height } = {}) {
     this.el.style.left = x + 'px';
     this.el.style.top = y + 'px';
+    if (height !== undefined) this.el.style.height = height + 'px';
     if (!this.el.isConnected) this.master.inner.appendChild(this.el);
+    this.placed = { x: String(x), y: String(y) };
+    this.layout?.();
     return this;
   }
+  place_info() { return this.el.isConnected ? { ...this.placed } : {}; }
+  winfo_reqwidth() { return this.el.offsetWidth; }
+  winfo_reqheight() { return this.el.offsetHeight; }
+  destroy() { this.el.remove(); }
 }
 
 export class Canvas extends Widget {
@@ -409,7 +420,7 @@ export class Listbox extends Widget {
     this._sync();
   }
   yview(...args) {
-    if (args[0] === 'scroll') this.yview_scroll(Number(args[1]));
+    if (args[0] === 'scroll') this.yview_scroll(Number(args[1]) * (args[2] === 'pages' ? this._visible() : 1));
     else if (args[0] === 'moveto') {
       this.top = Math.round(Number(args[1]) * this.rows.length);
       this._sync();
@@ -423,14 +434,56 @@ export class Scrollbar extends Widget {
     const el = this.el;
     el.className = 'tk-scrollbar disabled';
     const up = document.createElement('div');
+    const trough = document.createElement('div');
+    const thumb = document.createElement('div');
     const down = document.createElement('div');
     up.className = 'arrow up';
+    trough.className = 'trough';
+    thumb.className = 'thumb';
     down.className = 'arrow down';
-    el.append(up, down);
-    const press = (n) => () => this.opts.command && this.opts.command('scroll', n, 'units');
-    up.addEventListener('mousedown', press(-1));
-    down.addEventListener('mousedown', press(1));
-    this.set = (first, last) => el.classList.toggle('disabled', first <= 0 && last >= 1);
+    trough.appendChild(thumb);
+    el.append(up, trough, down);
+    this.first = 0;
+    this.last = 1;
+    const command = (...a) => this.opts.command && this.opts.command(...a);
+    up.addEventListener('mousedown', () => command('scroll', -1, 'units'));
+    down.addEventListener('mousedown', () => command('scroll', 1, 'units'));
+    trough.addEventListener('mousedown', (e) => {
+      if (e.target !== trough) return;
+      command('scroll', e.offsetY < thumb.offsetTop ? -1 : 1, 'pages');
+    });
+    thumb.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      thumb.setPointerCapture(e.pointerId);
+      thumb.classList.add('pressed');
+      const scale = el.getBoundingClientRect().height / el.offsetHeight || 1;
+      const startY = e.clientY;
+      const startFirst = this.first;
+      const move = (ev) => command('moveto', startFirst + (ev.clientY - startY) / scale / trough.clientHeight);
+      const up = () => {
+        thumb.classList.remove('pressed');
+        thumb.removeEventListener('pointermove', move);
+        thumb.removeEventListener('pointerup', up);
+      };
+      thumb.addEventListener('pointermove', move);
+      thumb.addEventListener('pointerup', up);
+    });
+    this.thumb = thumb;
+    this.trough = trough;
+    this.set = (first, last) => {
+      this.first = Number(first);
+      this.last = Number(last);
+      this.layout();
+    };
+  }
+  layout() {
+    const disabled = this.first <= 0 && this.last >= 1;
+    this.el.classList.toggle('disabled', disabled);
+    const h = this.trough?.clientHeight || 0;
+    if (!this.thumb || !h) return;
+    const size = Math.max(8, (this.last - this.first) * h);
+    this.thumb.style.height = size + 'px';
+    this.thumb.style.top = Math.min(h - size, this.first * h) + 'px';
   }
   config(opts) { this.configure(opts); }
 }

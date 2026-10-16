@@ -8,10 +8,34 @@ from tkinter import StringVar
 from tkinter.ttk import Entry
 import tkinter.messagebox as tmsg
 import random
+import os
+
+# THE PROGRAM OPENS ITS PICTURES AND TEXT FILES BY NAME, SO WORK FROM ITS OWN FOLDER
+# (THIS LETS IT START FROM ANY FOLDER, E.G. "python project/ESE.py")
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # STANDARD CMS ID LENGTH IS ELEVEN IN OUR PROJECT SUCH AS 00000000000
 
 # ALL THE FUNCTIONS ARE GIVEN BELOW
+
+# FUNCTION TO READ ALL LINES OF A TEXT FILE (NO LINES IF THE FILE DOES NOT EXIST YET)
+
+def READ_LINES(file_name):
+    try:
+        with open(file_name, 'r', encoding='utf8') as f:
+            return f.readlines()
+    except FileNotFoundError:
+        return []
+
+
+# FUNCTION TO REMOVE THE WIDGETS OF THE PREVIOUS SCREEN SO THEY DO NOT PILE UP
+# (WIDGETS PLACED HIGHER THAN from_y, LIKE THE TITLE, ARE KEPT)
+
+def CLEAR_SCREEN(from_y=0):
+    for widget in root.winfo_children():
+        if int(widget.place_info().get('y', 0)) >= from_y:
+            widget.destroy()
 
 # FUNCTION TO LOGOUT
 
@@ -27,22 +51,19 @@ def BACK_TO_MAIN():
 
 def SEARCH_ALL():
     app_list.delete(0, END)
-    f = open('user_element_info.txt', 'r')
     student_count = 0
-    while 1:
-        index = 0
-        line = f.readline()
-        data = line.split('***')
+    detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
+    for line in READ_LINES('user_element_info.txt'):
+        if not line.strip():
+            continue
+        data = line.strip('\n').split('***')
         student_count += 1
         app_list.insert(END, ' ')
-        app_list.insert(END, f" STUDENT : {student_count} :-\n")
-        detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
-        for i in data:
-            app_list.insert(END, f"{detail_list[index]} {i}\n")
-            index += 1
-        if not line:
-            print("if not line is true")
-            break
+        app_list.insert(END, f" STUDENT : {student_count} :-")
+        for index, i in enumerate(data[:len(detail_list)]):
+            app_list.insert(END, f"{detail_list[index]} {i}")
+    if student_count == 0:
+        tmsg.showinfo("Sorry", "no information added yet!")
 
 
 # FUNCTION FOR SEARCHING INFORMATION ENTER BY USER ON ELEMENT BASIS
@@ -53,23 +74,17 @@ def SEARCH_BY_ELEMENT():
         tmsg.showinfo("Error", "Invalid Entries!")
         return
     app_list.delete(0, END)
-    f = open('user_element_info.txt', 'r')
     student_count = 0
-    while 1:
-        index = 0
-        line = f.readline()
-        if element_var.get().lower().strip() in line.lower():
+    detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
+    for line in READ_LINES('user_element_info.txt'):
+        data = line.strip('\n').split('***')
+        if len(data) > 2 and data[2].strip().lower() == element_var.get().strip().lower():
             flag = 1
             student_count += 1
-            data = line.split('***')
             app_list.insert(END, ' ')
-            app_list.insert(END, f"DATA # : {student_count} :-\n")
-            for i in data:
-                detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
-                app_list.insert(END, f"{detail_list[index]} {i}\n")
-                index += 1
-        if not line:
-            break
+            app_list.insert(END, f"DATA # : {student_count} :-")
+            for index, i in enumerate(data[:len(detail_list)]):
+                app_list.insert(END, f"{detail_list[index]} {i}")
     if flag == 0:
         tmsg.showinfo("Sorry", "element not found!")
     return
@@ -83,24 +98,17 @@ def DISPLAY_USER_INFO():
         tmsg.showinfo("Error", "Invalid Entries ... PLEASE TRY AGAIN !")
         return
     app_list.delete(0, END)
-    f = open('user_element_info.txt', 'r')
     student_count = 0
-    while 1:
-
-        index = 0
-        line = f.readline()
-        data = line.split('***')
-        if cms1_var.get().strip() in data:
+    detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
+    for line in READ_LINES('user_element_info.txt'):
+        data = line.strip('\n').split('***')
+        if data[0].strip() == cms1_var.get().strip():
             flag = 1
             student_count += 1
             app_list.insert(END, ' ')
-            app_list.insert(END, f"DATA # 1 :  {student_count} :-\n")
-            detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:']
-            for i in data:
-                app_list.insert(END, f"{detail_list[index]} {i}\n")
-                index += 1
-        if not line:
-            break
+            app_list.insert(END, f"DATA # : {student_count} :-")
+            for index, i in enumerate(data[:len(detail_list)]):
+                app_list.insert(END, f"{detail_list[index]} {i}")
     if flag == 0:
         tmsg.showinfo("Sorry", "student not found!")
         return
@@ -109,6 +117,7 @@ def DISPLAY_USER_INFO():
 # FUNCTION FOR DISPLAYING LAYOUT OF USER's INFORMATION
 
 def SHOW_BUTTON():
+    CLEAR_SCREEN(180)
     search_rectangle = Canvas(root, bg="#051047", height=700, width=1900)
     search_rectangle.place(x=0, y=180)
     Label(search_rectangle, text="SEARCH BY CMS ID:", font=('Segoe UI', 24), fg="#FFFF00", bg='#051047').place(x=20,
@@ -127,12 +136,12 @@ def SHOW_BUTTON():
     Button(search_rectangle, text="Search All", font="SegoeUI 25", height=1, width=10, command=SEARCH_ALL).place(x=100,
                                                                                                                  y=320)
     sby = Scrollbar(search_rectangle)
-    sby.place(x=1200, y=150)
     global app_list
     app_list = Listbox(search_rectangle, height=10, width=70, font="SegoeUI 15", yscrollcommand=sby.set, fg="#FFFF00",
                        bg="#4169E1")
     app_list.place(x=500, y=150)
     sby.config(command=app_list.yview)
+    sby.place(x=500 + app_list.winfo_reqwidth(), y=150, height=app_list.winfo_reqheight())
 
     Button(root, text="BACK", font="arial 11", bg="LIGHTBLUE", command=USER_INFO).place(x=1300, y=710)
 
@@ -140,11 +149,20 @@ def SHOW_BUTTON():
 # FUNCTION FOR WRITING USER INFORMATION IN TEXT FILE
 
 def WRITING_USER_INFO():
+    entries = [cms_var.get().strip(), user_name_var.get().strip(), ele_name_var.get().strip(),
+               user_info_var.get().strip()]
+    if not (entries[0].isnumeric() and len(entries[0]) == 11):
+        tmsg.showinfo("Error", "CMS ID IS INVALID!")
+        return
+    if '' in entries:
+        tmsg.showinfo("Error", "PLEASE FILL IN ALL THE FIELDS!")
+        return
+    if any('*' in entry for entry in entries):
+        tmsg.showinfo("Error", "THE * CHARACTER IS NOT ALLOWED!")
+        return
 
-    f = open("user_element_info.txt", 'a')
-    f.write(
-        f"{cms_var.get().strip()}***{user_name_var.get().strip()}***{ele_name_var.get().strip()}***{user_info_var.get()}\n")
-    f.close()
+    with open("user_element_info.txt", 'a', encoding='utf8') as f:
+        f.write('***'.join(entries) + '\n')
     tmsg.showinfo("information", "INFORMATION ADDED SUCCESSFULLY")
     user_info_var.set('')
     user_name_var.set('')
@@ -155,7 +173,7 @@ def WRITING_USER_INFO():
 # FUNCTON THAT WILL ASK USER TO ENTER INFORMATION IF HE/SHE WANTS
 
 def USER_INFO():
-
+    CLEAR_SCREEN(180)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
     Label(rectangle_doc, text="CMS ID", font=('Segue UI', 24), fg="#FFFF00", bg="#051047").place(x=350, y=100)
@@ -187,9 +205,12 @@ def USER_INFO():
 # TO SEARCH IMAGE ON THE BASIS OF ITS ATOMIC NUMBER
 
 def update_image():
-    global image_index
+    global image_index, name_label
     label.configure(image=images[image_index - 1])
-    Label(root, text=elements[image_index - 1], width='15', font="SegoeUI 15 bold").place(x=500, y=679)
+    if name_label is not None:
+        name_label.destroy()
+    name_label = Label(root, text=elements[image_index - 1], width='15', font="SegoeUI 15 bold")
+    name_label.place(x=500, y=679)
 
 
 # FUNCTION TO GO TO NEXT IMAGE
@@ -230,6 +251,7 @@ def UPDATE_INDEX():
 # FUNCTION TO PRESENT PICTURES OF ELEMENTS
 
 def PICTURES():
+    CLEAR_SCREEN(180)
     Label(text=" ELEMENTAL GALLERY ", font="SegueUI 40 bold", bg="#FFFFF0").place(x=350, y=70)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
@@ -272,8 +294,9 @@ def PICTURES():
     global images
     images = [PhotoImage(file=f) for f in image_files]
 
-    global image_index
+    global image_index, name_label
     image_index = 1
+    name_label = None
 
     # DISPLAYING BUTTONS FOR PICTURES TO MOVE FORWARD AND BACKWARD
 
@@ -302,14 +325,28 @@ def PICTURES():
 def guess_check():
     root.title("QUIZ GAME")
     global score
+
+    # REMOVE THE RESULT OF THE PREVIOUS ANSWER
+    for widget in root.winfo_children():
+        if getattr(widget, 'quiz_result', False):
+            widget.destroy()
+
     if ANS_VAR.get().strip().lower() == element.lower():
-        Label(text="CORRECT ANSWER", font=('Segue UI', 25), fg="#FFFF00", bg="#051047").place(x=50, y=500)
+        result = Label(text="CORRECT ANSWER", font=('Segue UI', 25), fg="#FFFF00", bg="#051047")
+        result.quiz_result = True
+        result.place(x=50, y=500)
         score += 10
         del elements[element]
+        if not elements:
+            tmsg.showinfo("quiz game", f"WELL DONE! YOU NAMED ALL THE ELEMENTS\nYOUR SCORE IS {score}")
+            EXECUTION()
+            return
         quiz()
     else:
-        Label(text="WRONG ANSWER    ", font=('Segue UI', 25), fg="#FFFF00", bg="#051047").place(x=50, y=500)
-        Label(text=f"YOUR SCORE IS {score}", font=('Se-geo UI', 25), fg="#FFFF00", bg="#051047").place(x=50, y=550)
+        for text, y in (("WRONG ANSWER    ", 500), (f"YOUR SCORE IS {score}", 550)):
+            result = Label(text=text, font=('Segue UI', 25), fg="#FFFF00", bg="#051047")
+            result.quiz_result = True
+            result.place(x=50, y=y)
         ret = tmsg.askquestion("quiz game", "DO YOU WANT TO PLAY AGAIN")
         if ret == 'yes':
             QUIZ_GAME()
@@ -324,6 +361,11 @@ def quiz():
     global element
     element = random.choice(list(elements.keys()))
 
+    # REMOVE THE PREVIOUS QUESTION
+    for widget in root.winfo_children():
+        if getattr(widget, 'quiz_question', False):
+            widget.destroy()
+
     # DISPLAYING INFO FOR QUIZ IN LISTBOX
 
     game_listbox = Listbox(root, width=80, height=5, font="calibre 25", bg="lightblue")
@@ -333,19 +375,26 @@ def quiz():
     game_listbox.insert(END, f"Group: {elements[element]['Group']}")
     game_listbox.insert(END, f"Period: {elements[element]['Period']}")
     game_listbox.place(x=50, y=200)
-    Label(text="ENTER THE ANSWER", font=('Se-geo UI', 25), fg="#FFFF00", bg="#051047").place(x=50, y=445)
+    question = [game_listbox, Label(text="ENTER THE ANSWER", font=('Se-geo UI', 25), fg="#FFFF00", bg="#051047")]
+    question[1].place(x=50, y=445)
     global ANS_VAR
     ANS_VAR = StringVar()
-    Entry(textvariable=ANS_VAR, width=30, font=20).place(x=450, y=450)
-    Button(text="CHECK", font="arial 11", command=guess_check).place(x=720, y=500)
+    question.append(Entry(textvariable=ANS_VAR, width=30, font=20))
+    question[2].place(x=450, y=450)
+    question.append(Button(text="CHECK", font="arial 11", command=guess_check))
+    question[3].place(x=720, y=500)
 
-    Button(root, text="BACK", font="arial 11", bg="LIGHTBLUE", command=EXECUTION).place(x=1300, y=750)
+    question.append(Button(root, text="BACK", font="arial 11", bg="LIGHTBLUE", command=EXECUTION))
+    question[4].place(x=1300, y=750)
+    for widget in question:
+        widget.quiz_question = True
 
 
 # FUNCTION CONTAINING DATA FOR THE QUIZ
 
 def QUIZ_GAME():
     root.title("QUIZ GAME")
+    CLEAR_SCREEN(180)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
 
@@ -884,13 +933,10 @@ def QUIZ_GAME():
 # FUNCTION EXTRACTING INFORMATION FROM TEXT FILE OF ELEMENTS OF PERIODIC TABLE
 
 def txtfile(k):
-    print(k)
     root.title("info")
+    CLEAR_SCREEN(180)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
-
-    f = open("Periodictable.txt", "r", encoding="utf8")
-    f.seek(0)
 
     ALL_COLUMNS = ['Atomic Number : ', 'Symbol : ', 'Element : ', 'Origin of name : ',
                    'Group : ', 'Period : ', 'Atomic weight : ', 'Density (g/cm^3): ',
@@ -902,15 +948,12 @@ def txtfile(k):
 
     info_listbox = Listbox(root, width=80, height=13, font="calibri 25", bg="lightblue")
 
-    index = 0
-    for line in f:
-        data = line.split('*')
+    for line in READ_LINES("Periodictable.txt"):
+        data = line.strip('\n').split('*')
         if str(k) == data[0].strip():
-            for i in data:
+            for index, i in enumerate(data[:len(ALL_COLUMNS)]):
                 info_listbox.insert(END, f"{ALL_COLUMNS[index]} {i}")
-                index += 1
             break
-    f.close()
     info_listbox.place(x=80, y=200)
 
     Button(text="BACK", font="arial 11", bg="LIGHTBLUE", command=INFO_ELEMENTS).place(x=1300, y=750)
@@ -919,6 +962,7 @@ def txtfile(k):
 # FUNCTON PASSING ARGUMENTS  TO ABOVE ONE FOR DISPLAYING INFORMATION OF ELEMENTS
 
 def INFO_ELEMENTS():
+    CLEAR_SCREEN(180)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
     Label(rectangle_doc, text="f-BLOCK\nELEMENTS", font=('Segoe UI', 24), fg="#FFFF00", bg="#051047").place(x=200,
@@ -963,7 +1007,7 @@ def INFO_ELEMENTS():
             e += 32
         c += 43
 
-    elements = ['Sc', 'Y', 'Lu', 'Lr']
+    elements = ['Sc', 'Y', 'La', 'Ac']
     e = 21
     c = 129
     for i in range(4):
@@ -1190,7 +1234,7 @@ def INFO_ELEMENTS():
 # FUNCTION TO PRESENT PERIODIC TABLE
 
 def PERIODICTABLE():
-
+    CLEAR_SCREEN(180)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
     rectangle_doc.place(x=0, y=180)
     rectangle_doc.create_rectangle(0, 0, 2500, 2500)
@@ -1221,7 +1265,7 @@ def PERIODICTABLE():
 # FUNCTION EXECUTED AFTER LOGIN BUTTON IS PRESSED
 
 def EXECUTION():
-
+    CLEAR_SCREEN()
     Canvas(root, bg="#FFFFF0", height=300, width=1900).place(x=0, y=0)
     Label(text="PERIODIC TABLE", font="arial 40 bold", bg="#FFFFF0").place(x=500, y=70)
     rectangle_doc = Canvas(root, bg="#051047", height=700, width=1900)
@@ -1250,20 +1294,15 @@ def EXECUTION():
 def STUDENT_VERIFY():
     flag = 0
     if str(pre_CMS_var.get()).isnumeric() and len(str(pre_CMS_var.get().strip())) == 11:
-        j = open('students_account.txt', 'r')
-        j.seek(0)
-        while 1:
-            data = j.readline()
-            data1 = data.split('*')
-            if pre_CMS_var.get().strip() == data1[0] and pre_pass_var.get().strip() == data1[1].strip('\n'):
+        for data in READ_LINES('students_account.txt'):
+            data1 = data.strip('\n').split('*')
+            if len(data1) == 2 and pre_CMS_var.get().strip() == data1[0] and pre_pass_var.get().strip() == data1[1]:
                 flag = 1
                 break
-            if not data:
-                tmsg.showinfo("Login", "Account not found!")
-                break
-        j.close()
         if flag == 1:
             EXECUTION()
+        else:
+            tmsg.showinfo("Login", "Account not found!")
         return
     else:
         tmsg.showinfo("Login", "Invalid entries!")
@@ -1278,31 +1317,22 @@ def CREATE_ACCOUNT():
     # CHECKING WHETHER ACCOUNT ALREADY EXIST OR NOT
 
     if str(new_CMS_var.get()).isnumeric() and len(str(new_CMS_var.get())) == 11:
-        c = open('students_account.txt', 'r')
-        c.seek(0)
-        while 1:
-            data = c.readline()
-            data1 = data.split('*')
-            if new_CMS_var.get().strip() in data1:
+        for data in READ_LINES('students_account.txt'):
+            if data.split('*')[0].strip() == new_CMS_var.get().strip():
                 tmsg.showinfo("Account", "Account already exists!")
                 signal = 0
-                c.close()
-                break
-            if not data:
                 break
 
     if signal == 0:
         return
     if str(new_CMS_var.get()).isnumeric() and len(str(new_CMS_var.get())) == 11:
-        b = open('students_account.txt', 'a')
-        student_acc_list = []
-        temp1 = new_CMS_var.get() + '*'
-        student_acc_list.append(temp1)
-        temp2 = new_pass_var.get()
-        student_acc_list.append(temp2)
-        b.writelines(student_acc_list)
-        b.write('\n')
-        b.close()
+        # THE LOGIN STRIPS SPACES AND '*' SEPARATES THE ID FROM THE PASSWORD IN THE FILE
+        password = new_pass_var.get().strip()
+        if not password or '*' in password:
+            tmsg.showinfo("Error", "PASSWORD CAN NOT BE EMPTY OR CONTAIN * !")
+            return
+        with open('students_account.txt', 'a', encoding='utf8') as b:
+            b.write(new_CMS_var.get() + '*' + password + '\n')
         tmsg.showinfo("Account", "ACCOUNT CREATED SUCCESSFULLY!")
         new_CMS_var.set("")
         new_pass_var.set('')
@@ -1316,6 +1346,7 @@ def CREATE_ACCOUNT():
 
 def main():
     global new_CMS_var, new_pass_var, pre_CMS_var, pre_pass_var
+    CLEAR_SCREEN()
 
     Canvas(root, bg="#FFFFF0", height=300, width=1900).place(x=0, y=0)
 
