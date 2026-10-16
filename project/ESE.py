@@ -197,8 +197,8 @@ def update_image():
 def NEXT_IMAGE():
     global image_index
     image_index += 1
-    if image_index >= len(images):
-        image_index = 0
+    if image_index > len(images):
+        image_index = 1
     update_image()
 
 
@@ -207,8 +207,8 @@ def NEXT_IMAGE():
 def PREV_IMAGE():
     global image_index
     image_index -= 1
-    if image_index < 0:
-        image_index = len(images) - 1
+    if image_index < 1:
+        image_index = len(images)
     update_image()
 
 
@@ -217,10 +217,11 @@ def PREV_IMAGE():
 def UPDATE_INDEX():
     global image_index
     try:
-        image_index = int(entry_var.get())
-        if image_index < 1 or image_index >= len(images) + 1:
+        new_index = int(entry_var.get())
+        if new_index < 1 or new_index > len(images):
             tmsg.showerror('Error', 'Invalid Atomic Number')
         else:
+            image_index = new_index
             update_image()
     except ValueError:
         tmsg.showerror('Error', 'Invalid Atomic Number')
@@ -235,18 +236,18 @@ def PICTURES():
 
     # LIST OF ELEMENT PICTURES
 
-    image_files = ['1.PNG', '2.PNG', '3.PNG', '4.PNG', '5.PNG', '6.PNG', '7.PNG', '8.PNG', '9.PNG', '10.PNG', '11.PNG',
-                   '12.PNG', '13.PNG', '14.PNG', '15.PNG', '16.PNG', '17.PNG', '18.PNG', '19.PNG', '20.PNG', '21.PNG',
-                   '22.PNG', '23.PNG', '24.PNG', '25.PNG', '26.PNG', '27.PNG', '28.PNG', '29.PNG', '30.PNG', '31.PNG',
-                   '32.PNG', '33.PNG', '34.PNG', '35.PNG', '36.PNG', '37.PNG', '38.PNG', '39.PNG', '40.PNG', '41.PNG',
-                   '42.PNG', '43.PNG', '44.PNG', '45.PNG', '46.PNG', '47.PNG', '48.PNG', '49.PNG', '50.PNG', '51.PNG',
-                   '52.PNG', '53.PNG', '54.PNG', '55.PNG', '56.PNG', '57.PNG', '58.PNG', '59.PNG', '60.PNG', '61.PNG',
-                   '62.PNG', '63.PNG', '64.PNG', '65.PNG', '66.PNG', '67.PNG', '68.PNG', '69.PNG', '70.PNG', '71.PNG',
-                   '72.PNG', '73.PNG', '74.PNG', '75.PNG', '76.PNG', '77.PNG', '78.PNG', '79.PNG', '80.PNG', '81.PNG',
-                   '82.PNG', '83.PNG', '84.PNG', '85.PNG', '86.PNG', '87.PNG', '88.PNG', '89.PNG', '90.PNG', '91.PNG',
-                   '92.PNG', '93.PNG', '94.PNG', '95.PNG', '96.PNG', '97.PNG', '98.PNG', '99.PNG', '100.PNG', '101.PNG',
-                   '102.PNG', '103.PNG', '104.PNG', '105.PNG', '106.PNG', '107.PNG', '108.PNG', '109.PNG', '110.PNG',
-                   '111.PNG', '112.PNG', '113.PNG', '114.PNG', '115.PNG', '116.PNG', '117.PNG', '118.PNG']
+    image_files = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png', '11.png',
+                   '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png', '21.png',
+                   '22.png', '23.png', '24.png', '25.png', '26.png', '27.png', '28.png', '29.png', '30.png', '31.png',
+                   '32.png', '33.png', '34.png', '35.png', '36.png', '37.png', '38.png', '39.png', '40.png', '41.png',
+                   '42.png', '43.png', '44.png', '45.png', '46.png', '47.png', '48.png', '49.png', '50.png', '51.png',
+                   '52.png', '53.png', '54.png', '55.png', '56.png', '57.png', '58.png', '59.png', '60.png', '61.png',
+                   '62.png', '63.png', '64.png', '65.png', '66.png', '67.png', '68.png', '69.png', '70.png', '71.png',
+                   '72.png', '73.png', '74.png', '75.png', '76.png', '77.png', '78.png', '79.png', '80.png', '81.png',
+                   '82.png', '83.png', '84.png', '85.png', '86.png', '87.png', '88.png', '89.png', '90.png', '91.png',
+                   '92.png', '93.png', '94.png', '95.png', '96.png', '97.png', '98.png', '99.png', '100.png', '101.png',
+                   '102.png', '103.png', '104.png', '105.png', '106.png', '107.png', '108.png', '109.png', '110.png',
+                   '111.png', '112.png', '113.png', '114.png', '115.png', '116.png', '117.png', '118.png']
 
     # LIST OF ELEMENT NAMES
 
@@ -272,14 +273,14 @@ def PICTURES():
     images = [PhotoImage(file=f) for f in image_files]
 
     global image_index
-    image_index = 0
+    image_index = 1
 
     # DISPLAYING BUTTONS FOR PICTURES TO MOVE FORWARD AND BACKWARD
 
     global label
     label = Label(root, image=images[0])
     label.place(x=500, y=250)
-    Label(rectangle_doc, text=elements[image_index], width='15', height='1', font="SegueUI 15 bold").place(x=500, y=500)
+    Label(rectangle_doc, text=elements[image_index - 1], width='15', height='1', font="SegueUI 15 bold").place(x=500, y=500)
     Button(rectangle_doc, text='Previous', fg="#FFFF00", bg="#4169E1", width=10, height=1, command=PREV_IMAGE).place(
         x=10, y=400)
     Button(rectangle_doc, text='Next', fg="#FFFF00", bg="#4169E1", width=10, height=1, command=NEXT_IMAGE).place(x=100,

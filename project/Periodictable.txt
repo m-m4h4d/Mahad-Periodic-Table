@@ -30,7 +30,7 @@
 30*Zn*Zinc*Most likely from German Zinke, 'prong' or 'tooth', though some suggest Persian sang, 'stone'*12*4*65.38(2)*7.134*692.88*1180*0.388*1.65*70
 31*Ga*Gallium*Latin Gallia, 'France'*13*4*69.723(1)*5.907*302.9146*2673*0.371*1.81*19
 32*Ge*Germanium*Latin Germania, 'Germany'*14*4*72.630(8)*5.323*1211.4*3106*0.32*2.01*1.5
-33*As*Arsenic*French arsenic, from Greek arsenikón 'yellow arsenic' (influenced by arsenikós, 'masculine' or 'virile'), from a West Asian wanderword ultimately from Old Iranian *zarniya-ka, 'golden'*15*4*74.921595(6)*5.776*1090 [IX]*887*0.329*2.18*1.8
+33*As*Arsenic*French arsenic, from Greek arsenikón 'yellow arsenic' (influenced by arsenikós, 'masculine' or 'virile'), from a West Asian wanderword ultimately from Old Iranian zarniya-ka, 'golden'*15*4*74.921595(6)*5.776*1090 [IX]*887*0.329*2.18*1.8
 34*Se*Selenium*Greek selḗnē, 'moon'*16*4*78.971(8) *4.809*453*958*0.321*2.55*0.05
 35*Br*Bromine*Greek brômos, 'stench'*17*4*79.904*3.122*265.8*332*0.474*2.96*2.4
 36*Kr*Krypton*Greek kryptós, 'hidden'*18*4*83.798(2)  *0.003733*115.79*119.93*0.248*3*1×10−4
