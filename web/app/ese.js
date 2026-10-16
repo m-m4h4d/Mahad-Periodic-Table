@@ -38,26 +38,23 @@ async function loadFiles() {
       return;
     }
     const res = await fetch(ASSETS + name);
-    files[name] = (await res.text()).replace(/\r\n?/g, '\n');
+    files[name] = res.ok ? (await res.text()).replace(/\r\n?/g, '\n') : '';
   }));
 }
 
 function open(name, mode = 'r') {
   if (mode === 'a') {
     return {
-      write(s) { files[name] += s; storageSet(name, files[name]); },
+      write(s) { files[name] = (files[name] || '') + s; storageSet(name, files[name]); },
       writelines(list) { this.write(list.join('')); },
       close() {},
     };
   }
-  const lines = files[name].match(/[^\n]*\n|[^\n]+$/g) || [];
-  let pos = 0;
-  return {
-    readline: () => (pos < lines.length ? lines[pos++] : ''),
-    seek() { pos = 0; },
-    close() {},
-    [Symbol.iterator]: () => lines.slice(pos)[Symbol.iterator](),
-  };
+  throw new Error(`open(${name}, ${mode}) is not supported`);
+}
+
+function READ_LINES(name) {
+  return (files[name] || '').match(/[^\n]*\n|[^\n]+$/g) || [];
 }
 
 // Python string helpers
@@ -65,6 +62,7 @@ const strip = (s) => s.trim();
 const isnumeric = (s) => /^\p{N}+$/u.test(s);
 const len = (s) => [...s].length;
 const stripNewlines = (s) => s.replace(/^\n+|\n+$/g, '');
+const lower = (s) => s.toLowerCase();
 
 // ---------------------------------------------------------------- globals
 
@@ -72,10 +70,19 @@ let root;
 let app_list, cms1_var, element_var;
 let user_info_var, user_name_var, ele_name_var, cms_var;
 let elements, images, image_index, label, entry_var;
-let score, element, ANS_VAR;
+let score, element, ANS_VAR, name_label;
 let new_CMS_var, new_pass_var, pre_CMS_var, pre_pass_var;
 
 // STANDARD CMS ID LENGTH IS ELEVEN IN OUR PROJECT SUCH AS 00000000000
+
+// FUNCTION TO REMOVE THE WIDGETS OF THE PREVIOUS SCREEN SO THEY DO NOT PILE UP
+// (WIDGETS PLACED HIGHER THAN from_y, LIKE THE TITLE, ARE KEPT)
+
+function CLEAR_SCREEN(from_y = 0) {
+  for (const widget of root.winfo_children()) {
+    if (parseInt(widget.place_info().y ?? '0', 10) >= from_y) widget.destroy();
+  }
+}
 
 // FUNCTION TO LOGOUT
 
@@ -87,27 +94,24 @@ async function BACK_TO_MAIN() {
 
 // FUNCTION FOR DISPLAYING INFORMATION ENTER BY USERS
 
+const detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:'];
+
+function insertDetails(data) {
+  data.slice(0, detail_list.length).forEach((i, index) => app_list.insert(END, `${detail_list[index]} ${i}`));
+}
+
 function SEARCH_ALL() {
   app_list.delete(0, END);
-  const f = open('user_element_info.txt', 'r');
   let student_count = 0;
-  while (true) {
-    let index = 0;
-    const line = f.readline();
-    const data = line.split('***');
+  for (const line of READ_LINES('user_element_info.txt')) {
+    if (!strip(line)) continue;
+    const data = stripNewlines(line).split('***');
     student_count += 1;
     app_list.insert(END, ' ');
-    app_list.insert(END, ` STUDENT : ${student_count} :-\n`);
-    const detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:'];
-    for (const i of data) {
-      app_list.insert(END, `${detail_list[index]} ${i}\n`);
-      index += 1;
-    }
-    if (!line) {
-      console.log('if not line is true');
-      break;
-    }
+    app_list.insert(END, ` STUDENT : ${student_count} :-`);
+    insertDetails(data);
   }
+  if (student_count === 0) tmsg.showinfo('Sorry', 'no information added yet!');
 }
 
 // FUNCTION FOR SEARCHING INFORMATION ENTER BY USER ON ELEMENT BASIS
@@ -119,24 +123,16 @@ function SEARCH_BY_ELEMENT() {
     return;
   }
   app_list.delete(0, END);
-  const f = open('user_element_info.txt', 'r');
   let student_count = 0;
-  while (true) {
-    let index = 0;
-    const line = f.readline();
-    if (line.toLowerCase().includes(strip(element_var.get().toLowerCase()))) {
+  for (const line of READ_LINES('user_element_info.txt')) {
+    const data = stripNewlines(line).split('***');
+    if (data.length > 2 && lower(strip(data[2])) === lower(strip(element_var.get()))) {
       flag = 1;
       student_count += 1;
-      const data = line.split('***');
       app_list.insert(END, ' ');
-      app_list.insert(END, `DATA # : ${student_count} :-\n`);
-      for (const i of data) {
-        const detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:'];
-        app_list.insert(END, `${detail_list[index]} ${i}\n`);
-        index += 1;
-      }
+      app_list.insert(END, `DATA # : ${student_count} :-`);
+      insertDetails(data);
     }
-    if (!line) break;
   }
   if (flag === 0) tmsg.showinfo('Sorry', 'element not found!');
 }
@@ -150,24 +146,16 @@ function DISPLAY_USER_INFO() {
     return;
   }
   app_list.delete(0, END);
-  const f = open('user_element_info.txt', 'r');
   let student_count = 0;
-  while (true) {
-    let index = 0;
-    const line = f.readline();
-    const data = line.split('***');
-    if (data.includes(strip(cms1_var.get()))) {
+  for (const line of READ_LINES('user_element_info.txt')) {
+    const data = stripNewlines(line).split('***');
+    if (strip(data[0]) === strip(cms1_var.get())) {
       flag = 1;
       student_count += 1;
       app_list.insert(END, ' ');
-      app_list.insert(END, `DATA # 1 :  ${student_count} :-\n`);
-      const detail_list = ['CMS ID:', 'NAME:', 'ELEMENT NAME:', 'INFORMATION:'];
-      for (const i of data) {
-        app_list.insert(END, `${detail_list[index]} ${i}\n`);
-        index += 1;
-      }
+      app_list.insert(END, `DATA # : ${student_count} :-`);
+      insertDetails(data);
     }
-    if (!line) break;
   }
   if (flag === 0) tmsg.showinfo('Sorry', 'student not found!');
 }
@@ -175,6 +163,7 @@ function DISPLAY_USER_INFO() {
 // FUNCTION FOR DISPLAYING LAYOUT OF USER's INFORMATION
 
 function SHOW_BUTTON() {
+  CLEAR_SCREEN(180);
   const search_rectangle = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   search_rectangle.place({ x: 0, y: 180 });
   new Label(search_rectangle, { text: 'SEARCH BY CMS ID:', font: ['Segoe UI', 24], fg: '#FFFF00', bg: '#051047' }).place({ x: 20, y: 20 });
@@ -188,12 +177,12 @@ function SHOW_BUTTON() {
   new Button(search_rectangle, { text: 'Search', font: 'SegoeUI 11', command: SEARCH_BY_ELEMENT }).place({ x: 300, y: 280 });
   new Button(search_rectangle, { text: 'Search All', font: 'SegoeUI 25', height: 1, width: 10, command: SEARCH_ALL }).place({ x: 100, y: 320 });
   const sby = new Scrollbar(search_rectangle, {});
-  sby.place({ x: 1200, y: 150 });
   app_list = new Listbox(search_rectangle, {
     height: 10, width: 70, font: 'SegoeUI 15', yscrollcommand: sby.set, fg: '#FFFF00', bg: '#4169E1',
   });
   app_list.place({ x: 500, y: 150 });
   sby.config({ command: (...a) => app_list.yview(...a) });
+  sby.place({ x: 500 + app_list.winfo_reqwidth(), y: 150, height: app_list.winfo_reqheight() });
 
   new Button(root, { text: 'BACK', font: 'arial 11', bg: 'LIGHTBLUE', command: USER_INFO }).place({ x: 1300, y: 710 });
 }
@@ -201,9 +190,21 @@ function SHOW_BUTTON() {
 // FUNCTION FOR WRITING USER INFORMATION IN TEXT FILE
 
 async function WRITING_USER_INFO() {
-  const f = open('user_element_info.txt', 'a');
-  f.write(`${strip(cms_var.get())}***${strip(user_name_var.get())}***${strip(ele_name_var.get())}***${user_info_var.get()}\n`);
-  f.close();
+  const entries = [cms_var, user_name_var, ele_name_var, user_info_var].map((v) => strip(v.get()));
+  if (!(isnumeric(entries[0]) && len(entries[0]) === 11)) {
+    tmsg.showinfo('Error', 'CMS ID IS INVALID!');
+    return;
+  }
+  if (entries.includes('')) {
+    tmsg.showinfo('Error', 'PLEASE FILL IN ALL THE FIELDS!');
+    return;
+  }
+  if (entries.some((entry) => entry.includes('*'))) {
+    tmsg.showinfo('Error', 'THE * CHARACTER IS NOT ALLOWED!');
+    return;
+  }
+
+  open('user_element_info.txt', 'a').write(entries.join('***') + '\n');
   await tmsg.showinfo('information', 'INFORMATION ADDED SUCCESSFULLY');
   user_info_var.set('');
   user_name_var.set('');
@@ -214,6 +215,7 @@ async function WRITING_USER_INFO() {
 // FUNCTON THAT WILL ASK USER TO ENTER INFORMATION IF HE/SHE WANTS
 
 function USER_INFO() {
+  CLEAR_SCREEN(180);
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
   new Label(rectangle_doc, { text: 'CMS ID', font: ['Segue UI', 24], fg: '#FFFF00', bg: '#051047' }).place({ x: 350, y: 100 });
@@ -241,7 +243,9 @@ function USER_INFO() {
 
 function update_image() {
   label.configure({ image: images[image_index - 1] });
-  new Label(root, { text: elements[image_index - 1], width: '15', font: 'SegoeUI 15 bold' }).place({ x: 500, y: 679 });
+  if (name_label) name_label.destroy();
+  name_label = new Label(root, { text: elements[image_index - 1], width: '15', font: 'SegoeUI 15 bold' });
+  name_label.place({ x: 500, y: 679 });
 }
 
 // FUNCTION TO GO TO NEXT IMAGE
@@ -281,6 +285,7 @@ function UPDATE_INDEX() {
 // FUNCTION TO PRESENT PICTURES OF ELEMENTS
 
 function PICTURES() {
+  CLEAR_SCREEN(180);
   new Label(null, { text: ' ELEMENTAL GALLERY ', font: 'SegueUI 40 bold', bg: '#FFFFF0' }).place({ x: 350, y: 70 });
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
@@ -298,6 +303,7 @@ function PICTURES() {
   images.forEach((src) => { new Image().src = src; });
 
   image_index = 1;
+  name_label = null;
 
   // DISPLAYING BUTTONS FOR PICTURES TO MOVE FORWARD AND BACKWARD
 
@@ -319,14 +325,30 @@ function PICTURES() {
 
 async function guess_check() {
   root.title('QUIZ GAME');
+
+  // REMOVE THE RESULT OF THE PREVIOUS ANSWER
+  for (const widget of root.winfo_children()) {
+    if (widget.quiz_result) widget.destroy();
+  }
+  const result = (text, y) => {
+    const w = new Label(null, { text, font: ['Segue UI', 25], fg: '#FFFF00', bg: '#051047' });
+    w.quiz_result = true;
+    w.place({ x: 50, y });
+  };
+
   if (strip(ANS_VAR.get()).toLowerCase() === element.toLowerCase()) {
-    new Label(null, { text: 'CORRECT ANSWER', font: ['Segue UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 500 });
+    result('CORRECT ANSWER', 500);
     score += 10;
     delete elements[element];
+    if (!Object.keys(elements).length) {
+      await tmsg.showinfo('quiz game', `WELL DONE! YOU NAMED ALL THE ELEMENTS\nYOUR SCORE IS ${score}`);
+      EXECUTION();
+      return;
+    }
     quiz();
   } else {
-    new Label(null, { text: 'WRONG ANSWER    ', font: ['Segue UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 500 });
-    new Label(null, { text: `YOUR SCORE IS ${score}`, font: ['Se-geo UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 550 });
+    result('WRONG ANSWER    ', 500);
+    result(`YOUR SCORE IS ${score}`, 550);
     const ret = await tmsg.askquestion('quiz game', 'DO YOU WANT TO PLAY AGAIN');
     if (ret === 'yes') QUIZ_GAME();
     if (ret === 'no') EXECUTION();
@@ -338,8 +360,12 @@ async function guess_check() {
 function quiz() {
   root.title('QUIZ GAME');
   const keys = Object.keys(elements);
-  if (!keys.length) throw new IndexError('Cannot choose from an empty sequence');
   element = keys[Math.floor(Math.random() * keys.length)];
+
+  // REMOVE THE PREVIOUS QUESTION
+  for (const widget of root.winfo_children()) {
+    if (widget.quiz_question) widget.destroy();
+  }
 
   // DISPLAYING INFO FOR QUIZ IN LISTBOX
 
@@ -350,20 +376,22 @@ function quiz() {
   game_listbox.insert(END, `Group: ${elements[element]['Group']}`);
   game_listbox.insert(END, `Period: ${elements[element]['Period']}`);
   game_listbox.place({ x: 50, y: 200 });
-  new Label(null, { text: 'ENTER THE ANSWER', font: ['Se-geo UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 445 });
+  const question = [game_listbox];
+  question.push(new Label(null, { text: 'ENTER THE ANSWER', font: ['Se-geo UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 445 }));
   ANS_VAR = new StringVar();
-  new Entry(null, { textvariable: ANS_VAR, width: 30, font: 20 }).place({ x: 450, y: 450 });
-  new Button(null, { text: 'CHECK', font: 'arial 11', command: guess_check }).place({ x: 720, y: 500 });
+  question.push(new Entry(null, { textvariable: ANS_VAR, width: 30, font: 20 }).place({ x: 450, y: 450 }));
+  question.push(new Button(null, { text: 'CHECK', font: 'arial 11', command: guess_check }).place({ x: 720, y: 500 }));
 
-  new Button(root, { text: 'BACK', font: 'arial 11', bg: 'LIGHTBLUE', command: EXECUTION }).place({ x: 1300, y: 750 });
+  question.push(new Button(root, { text: 'BACK', font: 'arial 11', bg: 'LIGHTBLUE', command: EXECUTION }).place({ x: 1300, y: 750 }));
+  for (const widget of question) widget.quiz_question = true;
 }
 
-class IndexError extends Error {}
 
 // FUNCTION CONTAINING DATA FOR THE QUIZ
 
 function QUIZ_GAME() {
   root.title('QUIZ GAME');
+  CLEAR_SCREEN(180);
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
 
@@ -379,13 +407,10 @@ function QUIZ_GAME() {
 // FUNCTION EXTRACTING INFORMATION FROM TEXT FILE OF ELEMENTS OF PERIODIC TABLE
 
 function txtfile(k) {
-  console.log(k);
   root.title('info');
+  CLEAR_SCREEN(180);
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
-
-  const f = open('Periodictable.txt', 'r');
-  f.seek(0);
 
   const ALL_COLUMNS = ['Atomic Number : ', 'Symbol : ', 'Element : ', 'Origin of name : ',
     'Group : ', 'Period : ', 'Atomic weight : ', 'Density (g/cm^3): ',
@@ -397,19 +422,13 @@ function txtfile(k) {
 
   const info_listbox = new Listbox(root, { width: 80, height: 13, font: 'calibri 25', bg: 'lightblue' });
 
-  let index = 0;
-  for (const line of f) {
-    const data = line.split('*');
+  for (const line of READ_LINES('Periodictable.txt')) {
+    const data = stripNewlines(line).split('*');
     if (String(k) === strip(data[0])) {
-      for (const i of data) {
-        if (index >= ALL_COLUMNS.length) throw new IndexError('list index out of range');
-        info_listbox.insert(END, `${ALL_COLUMNS[index]} ${i}`);
-        index += 1;
-      }
+      data.slice(0, ALL_COLUMNS.length).forEach((i, index) => info_listbox.insert(END, `${ALL_COLUMNS[index]} ${i}`));
       break;
     }
   }
-  f.close();
   info_listbox.place({ x: 80, y: 200 });
 
   new Button(null, { text: 'BACK', font: 'arial 11', bg: 'LIGHTBLUE', command: INFO_ELEMENTS }).place({ x: 1300, y: 750 });
@@ -418,6 +437,7 @@ function txtfile(k) {
 // FUNCTON PASSING ARGUMENTS  TO ABOVE ONE FOR DISPLAYING INFORMATION OF ELEMENTS
 
 function INFO_ELEMENTS() {
+  CLEAR_SCREEN(180);
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
   const blockLabel = (text, x, y) =>
@@ -449,7 +469,7 @@ function INFO_ELEMENTS() {
     (e) => (e === 1 ? 2 : e === 3 || e === 11 ? 8 : e === 19 || e === 37 ? 18 : 32));
   column(['Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Ra'], 4, 43, d + 250, 'yellow',
     (e) => (e === 4 || e === 12 ? 8 : e === 20 || e === 38 ? 18 : 32));
-  column(['Sc', 'Y', 'Lu', 'Lr'], 21, 129, d + 300, 'light yellow', (e) => (e === 21 || e === 39 ? 18 : 32));
+  column(['Sc', 'Y', 'La', 'Ac'], 21, 129, d + 300, 'light yellow', (e) => (e === 21 || e === 39 ? 18 : 32));
 
   const dBlock = [
     [['Ti', 'Zr', 'Hf', 'Rf'], 22, 350, 'light yellow'],
@@ -492,6 +512,7 @@ function INFO_ELEMENTS() {
 // FUNCTION TO PRESENT PERIODIC TABLE
 
 function PERIODICTABLE() {
+  CLEAR_SCREEN(180);
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
   rectangle_doc.place({ x: 0, y: 180 });
   rectangle_doc.create_rectangle(0, 0, 2500, 2500);
@@ -513,6 +534,7 @@ function PERIODICTABLE() {
 // FUNCTION EXECUTED AFTER LOGIN BUTTON IS PRESSED
 
 function EXECUTION() {
+  CLEAR_SCREEN();
   new Canvas(root, { bg: '#FFFFF0', height: 300, width: 1900 }).place({ x: 0, y: 0 });
   new Label(null, { text: 'PERIODIC TABLE', font: 'arial 40 bold', bg: '#FFFFF0' }).place({ x: 500, y: 70 });
   const rectangle_doc = new Canvas(root, { bg: '#051047', height: 700, width: 1900 });
@@ -537,22 +559,15 @@ function EXECUTION() {
 function STUDENT_VERIFY() {
   let flag = 0;
   if (isnumeric(pre_CMS_var.get()) && len(strip(pre_CMS_var.get())) === 11) {
-    const j = open('students_account.txt', 'r');
-    j.seek(0);
-    while (true) {
-      const data = j.readline();
-      const data1 = data.split('*');
-      if (strip(pre_CMS_var.get()) === data1[0] && strip(pre_pass_var.get()) === stripNewlines(data1[1])) {
+    for (const data of READ_LINES('students_account.txt')) {
+      const data1 = stripNewlines(data).split('*');
+      if (data1.length === 2 && strip(pre_CMS_var.get()) === data1[0] && strip(pre_pass_var.get()) === data1[1]) {
         flag = 1;
         break;
       }
-      if (!data) {
-        tmsg.showinfo('Login', 'Account not found!');
-        break;
-      }
     }
-    j.close();
     if (flag === 1) EXECUTION();
+    else tmsg.showinfo('Login', 'Account not found!');
   } else {
     tmsg.showinfo('Login', 'Invalid entries!');
   }
@@ -566,27 +581,24 @@ async function CREATE_ACCOUNT() {
   // CHECKING WHETHER ACCOUNT ALREADY EXIST OR NOT
 
   if (isnumeric(new_CMS_var.get()) && len(new_CMS_var.get()) === 11) {
-    const c = open('students_account.txt', 'r');
-    c.seek(0);
-    while (true) {
-      const data = c.readline();
-      const data1 = data.split('*');
-      if (data1.includes(strip(new_CMS_var.get()))) {
+    for (const data of READ_LINES('students_account.txt')) {
+      if (strip(data.split('*')[0]) === strip(new_CMS_var.get())) {
         tmsg.showinfo('Account', 'Account already exists!');
         signal = 0;
-        c.close();
         break;
       }
-      if (!data) break;
     }
   }
 
   if (signal === 0) return;
   if (isnumeric(new_CMS_var.get()) && len(new_CMS_var.get()) === 11) {
-    const b = open('students_account.txt', 'a');
-    b.writelines([new_CMS_var.get() + '*', new_pass_var.get()]);
-    b.write('\n');
-    b.close();
+    // THE LOGIN STRIPS SPACES AND '*' SEPARATES THE ID FROM THE PASSWORD IN THE FILE
+    const password = strip(new_pass_var.get());
+    if (!password || password.includes('*')) {
+      tmsg.showinfo('Error', 'PASSWORD CAN NOT BE EMPTY OR CONTAIN * !');
+      return;
+    }
+    open('students_account.txt', 'a').write(new_CMS_var.get() + '*' + password + '\n');
     await tmsg.showinfo('Account', 'ACCOUNT CREATED SUCCESSFULLY!');
     new_CMS_var.set('');
     new_pass_var.set('');
@@ -598,6 +610,7 @@ async function CREATE_ACCOUNT() {
 // WE HAVE TO CREATE THIS FUNCTION FOR LOGOUT PURPOSE
 
 function main() {
+  CLEAR_SCREEN();
   new Canvas(root, { bg: '#FFFFF0', height: 300, width: 1900 }).place({ x: 0, y: 0 });
 
   new Label(root, { text: ' MTH ', font: ['Segue UI', 44], fg: '#FFFF00', bg: '#051047' }).place({ x: 300, y: 45 });
