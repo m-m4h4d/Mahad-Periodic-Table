@@ -105,7 +105,27 @@ export function font(spec) {
   return { fam, size, bold: rest.includes('bold'), italic: rest.includes('italic') };
 }
 
+// tkinter.font.Font: measure(text) and metrics('linespace'), in CSS pixels.
+const measureCanvas = document.createElement('canvas').getContext('2d');
+export class Font {
+  constructor(spec) {
+    const f = font(spec);
+    this.spec = spec;
+    this.css = `${f.italic ? 'italic ' : ''}${f.bold ? '700' : '400'} ${f.size}pt ${STACK[f.fam]}`;
+    this.linespace = LINESPACE[f.fam] * f.size * 96 / 72;
+  }
+  measure(text) {
+    measureCanvas.font = this.css;
+    return measureCanvas.measureText(text).width;
+  }
+  metrics(name) {
+    if (name === 'linespace') return this.linespace;
+    throw new Error(`metrics(${name}) is not supported`);
+  }
+}
+
 function applyFont(el, spec) {
+  if (spec instanceof Font) spec = spec.spec;
   const f = font(spec);
   el.style.fontFamily = STACK[f.fam];
   el.style.fontSize = f.size + 'pt';

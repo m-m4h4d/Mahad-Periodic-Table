@@ -6,6 +6,7 @@ from functools import partial
 from tkinter import PhotoImage
 from tkinter import StringVar
 from tkinter.ttk import Entry
+from tkinter import font as tkfont
 import tkinter.messagebox as tmsg
 import random
 import os
@@ -27,6 +28,20 @@ def READ_LINES(file_name):
             return f.readlines()
     except FileNotFoundError:
         return []
+
+
+# FUNCTION TO SPLIT TEXT INTO LINES THAT FIT IN THE GIVEN WIDTH (IN PIXELS)
+
+def WRAP_TEXT(text, text_font, width):
+    lines, line = [], ''
+    for word in text.split():
+        trial = f"{line} {word}" if line else word
+        if line and text_font.measure(trial) > width:
+            lines.append(line)
+            line = word
+        else:
+            line = trial
+    return lines + [line]
 
 
 # FUNCTION TO REMOVE THE WIDGETS OF THE PREVIOUS SCREEN SO THEY DO NOT PILE UP
@@ -332,9 +347,6 @@ def guess_check():
             widget.destroy()
 
     if ANS_VAR.get().strip().lower() == element.lower():
-        result = Label(text="CORRECT ANSWER", font=('Segue UI', 25), fg="#FFFF00", bg="#051047")
-        result.quiz_result = True
-        result.place(x=50, y=500)
         score += 10
         del elements[element]
         if not elements:
@@ -342,11 +354,14 @@ def guess_check():
             EXECUTION()
             return
         quiz()
+        result = Label(text="CORRECT ANSWER", font=('Segue UI', 25), fg="#FFFF00", bg="#051047")
+        result.quiz_result = True
+        result.place(x=50, y=500 + quiz_shift)
     else:
         for text, y in (("WRONG ANSWER    ", 500), (f"YOUR SCORE IS {score}", 550)):
             result = Label(text=text, font=('Segue UI', 25), fg="#FFFF00", bg="#051047")
             result.quiz_result = True
-            result.place(x=50, y=y)
+            result.place(x=50, y=y + quiz_shift)
         ret = tmsg.askquestion("quiz game", "DO YOU WANT TO PLAY AGAIN")
         if ret == 'yes':
             QUIZ_GAME()
@@ -367,22 +382,36 @@ def quiz():
             widget.destroy()
 
     # DISPLAYING INFO FOR QUIZ IN LISTBOX
+    # THE LIST IS WIDER THAN THE WINDOW, SO THE CLUE IS WRAPPED TO THE PART THAT CAN BE SEEN
 
-    game_listbox = Listbox(root, width=80, height=5, font="calibre 25", bg="lightblue")
-    game_listbox.insert(END, f"Atomic Number: {elements[element]['Atomic Number']}")
-    game_listbox.insert(END, f"Properties: {elements[element]['Properties']}")
-    game_listbox.insert(END, f"Symbol: {elements[element]['Symbol']}")
-    game_listbox.insert(END, f"Group: {elements[element]['Group']}")
-    game_listbox.insert(END, f"Period: {elements[element]['Period']}")
+    quiz_font = tkfont.Font(font="calibre 25")
+    window_width = root.winfo_width() if root.winfo_width() > 1 else 1500
+    indent = '    '
+    wrap_width = min(80 * quiz_font.measure('0'), window_width - 50) - 30 - quiz_font.measure(indent)
+    clue = WRAP_TEXT(f"Properties: {elements[element]['Properties']}", quiz_font, wrap_width)
+    rows = ([f"Atomic Number: {elements[element]['Atomic Number']}"]
+            + clue[:1] + [indent + line for line in clue[1:]]
+            + [f"Symbol: {elements[element]['Symbol']}",
+               f"Group: {elements[element]['Group']}",
+               f"Period: {elements[element]['Period']}"])
+
+    game_listbox = Listbox(root, width=80, height=len(rows), font=quiz_font, bg="lightblue")
+    for row in rows:
+        game_listbox.insert(END, row)
     game_listbox.place(x=50, y=200)
+
+    # MOVE THE ANSWER BOX DOWN BY THE EXTRA LINES OF THE CLUE
+    global quiz_shift
+    quiz_shift = (len(rows) - 5) * quiz_font.metrics('linespace')
+
     question = [game_listbox, Label(text="ENTER THE ANSWER", font=('Se-geo UI', 25), fg="#FFFF00", bg="#051047")]
-    question[1].place(x=50, y=445)
+    question[1].place(x=50, y=445 + quiz_shift)
     global ANS_VAR
     ANS_VAR = StringVar()
     question.append(Entry(textvariable=ANS_VAR, width=30, font=20))
-    question[2].place(x=450, y=450)
+    question[2].place(x=450, y=450 + quiz_shift)
     question.append(Button(text="CHECK", font="arial 11", command=guess_check))
-    question[3].place(x=720, y=500)
+    question[3].place(x=720, y=500 + quiz_shift)
 
     question.append(Button(root, text="BACK", font="arial 11", bg="LIGHTBLUE", command=EXECUTION))
     question[4].place(x=1300, y=750)

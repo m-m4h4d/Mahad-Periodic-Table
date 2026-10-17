@@ -5,7 +5,7 @@
 // app. Text files are kept in the browser's localStorage instead of on disk.
 
 import {
-  Tk, Canvas, Label, Button, Entry, Listbox, Scrollbar, StringVar,
+  Tk, Canvas, Label, Button, Entry, Listbox, Scrollbar, StringVar, Font,
   messagebox as tmsg, partial, fitStage, END, RIDGE, GROOVE,
 } from './tk.js';
 import { IMAGE_FILES, GALLERY_ELEMENTS, QUIZ_ELEMENTS, TABLE_TEXT } from './data.js';
@@ -70,10 +70,27 @@ let root;
 let app_list, cms1_var, element_var;
 let user_info_var, user_name_var, ele_name_var, cms_var;
 let elements, images, image_index, label, entry_var;
-let score, element, ANS_VAR, name_label;
+let score, element, ANS_VAR, name_label, quiz_shift = 0;
 let new_CMS_var, new_pass_var, pre_CMS_var, pre_pass_var;
 
 // STANDARD CMS ID LENGTH IS ELEVEN IN OUR PROJECT SUCH AS 00000000000
+
+// FUNCTION TO SPLIT TEXT INTO LINES THAT FIT IN THE GIVEN WIDTH (IN PIXELS)
+
+function WRAP_TEXT(text, text_font, width) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const trial = line ? `${line} ${word}` : word;
+    if (line && text_font.measure(trial) > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = trial;
+    }
+  }
+  return [...lines, line];
+}
 
 // FUNCTION TO REMOVE THE WIDGETS OF THE PREVIOUS SCREEN SO THEY DO NOT PILE UP
 // (WIDGETS PLACED HIGHER THAN from_y, LIKE THE TITLE, ARE KEPT)
@@ -337,7 +354,6 @@ async function guess_check() {
   };
 
   if (strip(ANS_VAR.get()).toLowerCase() === element.toLowerCase()) {
-    result('CORRECT ANSWER', 500);
     score += 10;
     delete elements[element];
     if (!Object.keys(elements).length) {
@@ -346,9 +362,10 @@ async function guess_check() {
       return;
     }
     quiz();
+    result('CORRECT ANSWER', 500 + quiz_shift);
   } else {
-    result('WRONG ANSWER    ', 500);
-    result(`YOUR SCORE IS ${score}`, 550);
+    result('WRONG ANSWER    ', 500 + quiz_shift);
+    result(`YOUR SCORE IS ${score}`, 550 + quiz_shift);
     const ret = await tmsg.askquestion('quiz game', 'DO YOU WANT TO PLAY AGAIN');
     if (ret === 'yes') QUIZ_GAME();
     if (ret === 'no') EXECUTION();
@@ -369,18 +386,33 @@ function quiz() {
 
   // DISPLAYING INFO FOR QUIZ IN LISTBOX
 
-  const game_listbox = new Listbox(root, { width: 80, height: 5, font: 'calibre 25', bg: 'lightblue' });
-  game_listbox.insert(END, `Atomic Number: ${elements[element]['Atomic Number']}`);
-  game_listbox.insert(END, `Properties: ${elements[element]['Properties']}`);
-  game_listbox.insert(END, `Symbol: ${elements[element]['Symbol']}`);
-  game_listbox.insert(END, `Group: ${elements[element]['Group']}`);
-  game_listbox.insert(END, `Period: ${elements[element]['Period']}`);
+  // THE LIST IS WIDER THAN THE WINDOW, SO THE CLUE IS WRAPPED TO THE PART THAT CAN BE SEEN
+
+  const quiz_font = new Font('calibre 25');
+  const window_width = root.el.offsetWidth || 1500;
+  const indent = '    ';
+  const wrap_width = Math.min(80 * quiz_font.measure('0'), window_width - 50) - 30 - quiz_font.measure(indent);
+  const clue = WRAP_TEXT(`Properties: ${elements[element]['Properties']}`, quiz_font, wrap_width);
+  const rows = [
+    `Atomic Number: ${elements[element]['Atomic Number']}`,
+    ...clue.slice(0, 1), ...clue.slice(1).map((line) => indent + line),
+    `Symbol: ${elements[element]['Symbol']}`,
+    `Group: ${elements[element]['Group']}`,
+    `Period: ${elements[element]['Period']}`,
+  ];
+
+  const game_listbox = new Listbox(root, { width: 80, height: rows.length, font: quiz_font, bg: 'lightblue' });
+  for (const row of rows) game_listbox.insert(END, row);
   game_listbox.place({ x: 50, y: 200 });
+
+  // MOVE THE ANSWER BOX DOWN BY THE EXTRA LINES OF THE CLUE
+  quiz_shift = (rows.length - 5) * quiz_font.metrics('linespace');
+
   const question = [game_listbox];
-  question.push(new Label(null, { text: 'ENTER THE ANSWER', font: ['Se-geo UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 445 }));
+  question.push(new Label(null, { text: 'ENTER THE ANSWER', font: ['Se-geo UI', 25], fg: '#FFFF00', bg: '#051047' }).place({ x: 50, y: 445 + quiz_shift }));
   ANS_VAR = new StringVar();
-  question.push(new Entry(null, { textvariable: ANS_VAR, width: 30, font: 20 }).place({ x: 450, y: 450 }));
-  question.push(new Button(null, { text: 'CHECK', font: 'arial 11', command: guess_check }).place({ x: 720, y: 500 }));
+  question.push(new Entry(null, { textvariable: ANS_VAR, width: 30, font: 20 }).place({ x: 450, y: 450 + quiz_shift }));
+  question.push(new Button(null, { text: 'CHECK', font: 'arial 11', command: guess_check }).place({ x: 720, y: 500 + quiz_shift }));
 
   question.push(new Button(root, { text: 'BACK', font: 'arial 11', bg: 'LIGHTBLUE', command: EXECUTION }).place({ x: 1300, y: 750 }));
   for (const widget of question) widget.quiz_question = true;
